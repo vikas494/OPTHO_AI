@@ -1,24 +1,16 @@
 import sqlite3
 
-def setup_database():
+def migrate_database():
     conn = sqlite3.connect('retinopathy_agent.db')
     cursor = conn.cursor()
     
-    # 1. The Ophthalmologist Table (For Auth and Isolation)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS ophthalmologists (
-        o_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email_id TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        dob TEXT,
-        working_address TEXT
-    );
-    """)
+    # Drop existing tables
+    cursor.execute("DROP TABLE IF EXISTS scans;")
+    cursor.execute("DROP TABLE IF EXISTS patients;")
     
-    # 2. The Patient Table
+    # Create new patients table with Aadhar Number
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS patients (
+    CREATE TABLE patients (
         aadhar_number TEXT PRIMARY KEY,
         o_id INTEGER NOT NULL,
         patient_name TEXT NOT NULL,
@@ -26,9 +18,9 @@ def setup_database():
     );
     """)
 
-    # 3. The Scans Table (Where the AI and Doctor interact)
+    # Create new scans table
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS scans (
+    CREATE TABLE scans (
         scan_id INTEGER PRIMARY KEY AUTOINCREMENT,
         aadhar_number TEXT NOT NULL,
         scan_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -36,8 +28,8 @@ def setup_database():
         heatmap_path TEXT NOT NULL,
         ai_predicted_class INTEGER,
         ai_confidence REAL,
-        doctor_verified_class INTEGER,  -- NULL until the doctor reviews it
-        is_ai_correct BOOLEAN,          -- True/False
+        doctor_verified_class INTEGER,
+        is_ai_correct BOOLEAN,
         ready_for_retraining BOOLEAN DEFAULT 0,
         FOREIGN KEY (aadhar_number) REFERENCES patients(aadhar_number)
     );
@@ -45,7 +37,7 @@ def setup_database():
     
     conn.commit()
     conn.close()
-    print("Clinical Database successfully built with relational tables!")
+    print("Migration successful: patients and scans tables have been recreated with Aadhar Number as Primary Key.")
 
 if __name__ == "__main__":
-    setup_database()
+    migrate_database()
